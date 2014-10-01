@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui sql network
+QT       += core gui sql network concurrent
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -18,8 +18,9 @@ SOURCES += main.cpp\
     dbconnect.cpp \
     mastersymbollist.cpp \
     getprices.cpp \
-    qnam.cpp \
-    datesetter.cpp
+    datesetter.cpp \
+    datatablemodel.cpp \
+    statistics.cpp
 
 
 HEADERS  += mainwindow.h \
@@ -27,16 +28,15 @@ HEADERS  += mainwindow.h \
     dbconnect.h \
     mastersymbollist.h \
     getprices.h \
-    qnam.h \
-    datesetter.h
+    datesetter.h \
+    datatablemodel.h \
+    statistics.h
 
 FORMS    += mainwindow.ui \
     mastersymbollist.ui \
-    getprices.ui \
-    datesetter.ui \
-    datesetterbak.ui
+    datesetter.ui
 
-QMAKE_LIBS += -L/usr/lib/ -llapack #-lblas
+QMAKE_LIBS += -L/usr/lib/ -llapack -lblas -larmadillo
 
 QMAKE_CXXFLAGS += -std=c++11
 #QMAKE_CXXFLAGS_CXX11 += -std=c++11
@@ -57,16 +57,16 @@ DEPENDPATH += $$PWD/../../../../../usr/lib
 
 #libcurl (cURL) is a client-side URL transfer library. libcurl is portable and bindings are
 #available in C/C++. libcurl (not cURL) supports simultaneous downloads of multiple URLs.
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/x86_64-linux-gnu/release/ -lcurl
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/x86_64-linux-gnu/debug/ -lcurl
-else:unix: LIBS += -L$$PWD/../../../../../usr/lib/x86_64-linux-gnu/ -lcurl
-INCLUDEPATH += $$PWD/../../../../../usr/lib/x86_64-linux-gnu
-DEPENDPATH += $$PWD/../../../../../usr/lib/x86_64-linux-gnu
+#win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/x86_64-linux-gnu/release/ -lcurl
+#else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/x86_64-linux-gnu/debug/ -lcurl
+#else:unix: LIBS += -L$$PWD/../../../../../usr/lib/x86_64-linux-gnu/ -lcurl
+#INCLUDEPATH += $$PWD/../../../../../usr/lib/x86_64-linux-gnu
+#DEPENDPATH += $$PWD/../../../../../usr/lib/x86_64-linux-gnu
 
 #curlpp is C++ wrapper to libcurl.
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../usr/local/lib/release/ -lcurlpp
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../usr/local/lib/debug/ -lcurlpp
-else:unix: LIBS += -L$$PWD/../../../../../usr/local/lib/ -lcurlpp
+#win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../usr/local/lib/release/ -lcurlpp
+#else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../usr/local/lib/debug/ -lcurlpp
+#else:unix: LIBS += -L$$PWD/../../../../../usr/local/lib/ -lcurlpp
 
 INCLUDEPATH += $$PWD/../../../../../usr/local/lib
 DEPENDPATH += $$PWD/../../../../../usr/local/lib

@@ -7,52 +7,60 @@
 #include <QNetworkReply>
 //#include <QNetworkProxy>
 //#include <QNetworkSession>
-#include <QSql>
+#include <QProgressDialog>
+#include <QtSql>
 #include <QUrl>
-#include <QProgressBar>
 #include <QDebug>
-#include "dbconnect.h"
+//#include "dbconnect.h"
 #include "datesetter.h"
-//#include "qnam.h"
+#include "cointegration.h"
 
+//namespace Ui {
+//class GetPrices;
+//}
 
-namespace Ui {
-class GetPrices;
-}
-
-class GetPrices : public QDialog
+class GetPrices : public QObject    //QDialog
 {
     Q_OBJECT
 
 public:
-    explicit GetPrices(QWidget *parent = 0);
+    explicit GetPrices(/*QWidget*/ QObject *parent = 0);
     ~GetPrices();
 
     void setPrices();
 
-    DBConnect *_dataconnect;
-    DBConnect *_data2connect;
-    QSqlDatabase symbolsDB;
-    QSqlDatabase pricesDB;
+//    DBConnect *_dataconnect;  //connection to symbol_list dB
+//    DBConnect *_data2connect;  //connection to prices dB
+//    QSqlDatabase symbolsDB;
+//    QSqlDatabase pricesDB;
+    QStringList _symbolList;
+    QMultiMap<QString, double> integratedPricesMap;
     void replyFinished(QNetworkReply*, QString);
+    int progressCounter = 0;  //update for the qprogressbar
+
+    void calcIntegrated();
 
 signals:
+    void mainProgressBar(int, int);
+//    void insertProgress(qint64, qint64);
+    void PricesMapSignal(QMultiMap<QString, double>);
 
 public slots:
+    void updateProgressBar(int, int);
 
 private slots:
-    void downloadFinished();
 
 private:
-    Ui::GetPrices *ui;
+//    Ui::GetPrices *ui;
     QNetworkAccessManager* _manager;
     QUrl _originalUrl;
     QUrl _urlRedirectedTo;
-    QStringList _symbolList;
 
     void FetchURL(const QUrl&, QString);
     QUrl redirectUrl(const QUrl& possibleRedirectUrl,
                          const QUrl& oldRedirectUrl) const;
+    int _start; //number of trading days.
+
 };
 
 #endif // GETPRICES_H

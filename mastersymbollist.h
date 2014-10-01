@@ -5,7 +5,9 @@
 #include <QtSql>
 #include <QMessageBox>
 #include <QCloseEvent>
-#include "dbconnect.h"
+//#include "dbconnect.h"
+//#include "integrated.h"
+#include "getprices.h"
 
 namespace Ui {
 class MasterSymbolList;
@@ -20,17 +22,21 @@ public:
     ~MasterSymbolList();
 
 private slots:
-    void on_pushButton_clicked();//change
+    void on_Update_clicked();//update
 
-    void on_pushButton_2_clicked();//delete
+    void on_Delete_clicked();//delete
 
-    void on_pushButton_3_clicked();//add
+    void on_Insert_clicked();//insert
+
+    void on_calcIntegrated_clicked();
+
+    void on_Delete_All_clicked();
 
 private:
     Ui::MasterSymbolList *ui;
-    QSqlDatabase dblist;
+    QSqlDatabase *msListdB;
     QSqlTableModel* model;
-    DBConnect* mslistdb;
+//    DBConnect* mslistdb;
 };
 
 #endif // MASTERSYMBOLLIST_H

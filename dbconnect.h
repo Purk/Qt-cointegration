@@ -10,6 +10,8 @@ class DBConnect : public QObject
 {
     Q_OBJECT
 public:
+    /*  pass in to DBConnect an existing database
+     *  name,and make up a connection name */
     explicit DBConnect(const QString& , const QString&, QObject *parent = 0);
     ~DBConnect();
 

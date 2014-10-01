@@ -2,26 +2,29 @@
 #define COINTEGRATION_H
 
 #include <QObject>
+#include <QDebug>
+#include <QList>
 #include <vector>
 #include <armadillo>
+#include <statistics.h>
 
 class Cointegration : public QObject
 {
     Q_OBJECT
 public:
     explicit Cointegration(QObject *parent = 0);
-    explicit Cointegration(arma::vec& timeseries, bool drift = 1, QObject *parent = 0);
-    explicit Cointegration(arma::vec& y, arma::vec& x, QObject *parent = 0);
+    explicit Cointegration(QList<double> &, bool drift = 1, QObject *parent = 0);
+    explicit Cointegration(QList<double> &, QList<double> &, QObject *parent = 0);
     ~Cointegration();
 
-    void AugmentedDickeyFullerTest(arma::vec&, bool);
-    int getintegrated() { return m_integrated; }
-    void BreuschGodfreyTest(arma::mat&, arma::vec&);
-    void CointegrationTest(arma::vec&, arma::vec&);
-    double getadftest() { return m_adftest; }
-    double getzscore() { return m_zscore; }
-    void PositionHedge(arma::vec&, arma::vec&);
-    double getbeta() { return m_beta_y; }
+    QPair<int, double> AugmentedDickeyFullerTest(QList<double> &, bool=false);
+    int getIntegrated() { return m_integrated; }
+    bool BreuschGodfreyTest(arma::mat&, arma::vec&);
+    Statistics CointegrationTest(QString &, QString &, QList<double> &, QList<double> &);
+    double getAdftest() { return m_adftest; }
+    double getZscore() { return m_zscore; }
+    double PositionHedge(arma::vec&, arma::vec&);
+    double getBeta() { return m_beta_y; }
     void ErrorCorrectionModel(arma::vec&, arma::vec&, arma::vec&);
 
 private:
@@ -32,6 +35,7 @@ private:
     double m_zscore;
     double m_beta_y;
     //double m_ecmvalue;
+//    DBConnect * _dbconnetion;
 
     //  (A)DF critical values: assumes model with constant, without trend, T=1, and N=250.
     //  critical points (.10, .05, .01) on rows.
@@ -47,6 +51,7 @@ private:
                                           {16.0, 18.30, 23.20}};
 
 signals:
+    void sendStats(const Statistics &stats);
 
 public slots:
 

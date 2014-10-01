@@ -6,27 +6,36 @@ MasterSymbolList::MasterSymbolList(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    msListdB = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "masterdB"));
+    msListdB->setDatabaseName(QString(QDir::homePath() + "/.sqlitedb/symbol_list.sqlite"));
 
-    mslistdb = new DBConnect("symbol_list.sqlite", "test");
-    dblist = mslistdb->getDBconnection();
-
-
-    if(dblist.open())
+    if(!msListdB->open())
     {
-        QSqlQuery qry(dblist);
-        if(qry.exec("CREATE TABLE IF NOT EXISTS [symbol_list] (symbol TEXT)")){
-            qry.exec("CREATE TABLE IF NOT EXISTS [current_pos] (symbol TEXT)");
-        }
-        else{
-            qDebug() << qry.lastQuery();
-            qDebug() << qry.lastError();
-        }
-    }
-    else{
-        qDebug() << dblist.lastError();
+        qDebug() << "Error opening" << msListdB->databaseName();
     }
 
-    model = new QSqlTableModel(this, dblist);
+    if(msListdB->isValid() && msListdB->isOpen())
+    {
+        QSqlQuery *query = new QSqlQuery(*msListdB);
+
+        if(!query->exec("CREATE TABLE IF NOT EXISTS [symbol_list] (symbol TEXT, integrated REAL)"))
+        {
+            QMessageBox::warning(this, tr("Cached table"), tr("dBase query error: %1")
+                                 .arg(query->lastQuery()).arg(query->lastError().text()));
+        }
+        if(!query->exec("CREATE TABLE IF NOT EXISTS [current_pos] (symbol TEXT)"))
+        {
+            QMessageBox::warning(this, tr("Cached Table"), tr("dBase query error: %1 : %2")
+                                 .arg(query->lastQuery()).arg(query->lastError().text()));
+        }
+        delete query;
+
+    }else{
+        qDebug() << "Lost connection to" << msListdB->databaseName();
+    }
+
+
+    model = new QSqlTableModel(this, *msListdB);
     model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     model->setTable("symbol_list");
     model->select();
@@ -37,17 +46,12 @@ MasterSymbolList::MasterSymbolList(QWidget *parent) :
     ui->tableView->setEditTriggers(QAbstractItemView::AnyKeyPressed | QAbstractItemView::DoubleClicked);
 }
 
-
 MasterSymbolList::~MasterSymbolList()
 {
-    dblist.close();
-    dblist.removeDatabase("test");
-    delete mslistdb;
-    delete model;
     delete ui;
 }
 
-void MasterSymbolList::on_pushButton_clicked()
+void MasterSymbolList::on_Update_clicked()
 {
     //update
     QString currindx;
@@ -62,15 +66,14 @@ void MasterSymbolList::on_pushButton_clicked()
     else{
         model->database().rollback();
         QMessageBox::warning(this, tr("Cached Table"),
-                                     tr("The database reported an error: %1")
+                                     tr("The database (MSL) reported an error: %1")
                                      .arg(model->lastError().text()));
     }
-
 }
 
-void MasterSymbolList::on_pushButton_2_clicked()
+void MasterSymbolList::on_Delete_clicked()
 {
-    QSqlQuery qry1(dblist);
+    QSqlQuery qry1(*msListdB);
     QString currindx;
     QModelIndex qmi= ui->tableView->currentIndex();
     currindx = qmi.data(Qt::DisplayRole).toString();
@@ -93,13 +96,13 @@ void MasterSymbolList::on_pushButton_2_clicked()
     }
     else{
         qDebug() << qry1.lastQuery();
-        qDebug() << qry1.lastError();
+        qDebug() << "MSL delete error:" <<qry1.lastError();
     }
 }
 
-void MasterSymbolList::on_pushButton_3_clicked()
+void MasterSymbolList::on_Insert_clicked()
 {
-    //add
+    //insert
     model->database().transaction();
     int row = model->rowCount();
     model->insertRows(row,1);
@@ -109,3 +112,43 @@ void MasterSymbolList::on_pushButton_3_clicked()
     }
 }
 
+
+void MasterSymbolList::on_calcIntegrated_clicked()
+{
+//    GetPrices *recalc = new GetPrices(this);
+//    recalc->setPrices();
+    GetPrices recalc;
+    recalc.setPrices(); // calcIntegrated();
+//    delete recalc;
+}
+
+void MasterSymbolList::on_Delete_All_clicked()
+{
+    QSqlQuery qry1(*msListdB);
+
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Delete All Symbols");
+    msgBox.setText("Continue to delete all symbols from database?");
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+
+    if (msgBox.exec() == QMessageBox::Ok)
+    {
+        model->database().transaction();
+        int rows = model->rowCount();
+        model->removeRows(0, rows);
+        if(model->submitAll()){
+            model->database().commit();
+            model->sort(0, Qt::AscendingOrder);
+        }
+    }else
+    {
+        //if (msgBox.exec() == QMessageBox::Cancel) {
+        qDebug() << "cancel";
+        msgBox.close();
+    }
+
+
+
+}

@@ -4,22 +4,32 @@ Cointegration::Cointegration(QObject *parent) :
     QObject(parent), m_adftest(0), m_integrated(0), m_bgodtest(0),
     m_zscore(0), m_beta_y(0) //, m_ecmvalue(0)
 {
-    //myconstructor
-    qDebug() << "Hello, World!";
 }
 
-Cointegration::Cointegration(arma::vec& timeseries, bool drift, QObject *parent) :
+Cointegration::Cointegration(QList<double> &priceList, bool drift, QObject *parent) :
     QObject(parent), m_adftest(0), m_integrated(0), m_bgodtest(0),
     m_zscore(0), m_beta_y(0) //, m_ecmvalue(0)
 {
-    AugmentedDickeyFullerTest(timeseries, drift);
+    arma::vec timeseries(priceList.size());
+
+    for(int i = 0; i < priceList.size(); i++)
+    {
+        timeseries(i) = priceList.at(i);
+    }
 }
 
-Cointegration::Cointegration(arma::vec& y, arma::vec& x, QObject *parent) :
+Cointegration::Cointegration(QList<double> &dependent, QList<double> &independent, QObject *parent) :
     QObject(parent), m_adftest(0), m_integrated(0), m_bgodtest(0),
     m_zscore(0), m_beta_y(0) //, m_ecmvalue(0)
 {
-    CointegrationTest(y, x);
+    arma::vec yVar(dependent.size());
+    arma::vec xVar(independent.size());
+
+    for(int i = 0; i < independent.size(); i++)
+    {
+        yVar(i) = dependent.at(i);
+        xVar(i) = independent.at(i);
+    }
 }
 
 Cointegration::~Cointegration()
@@ -27,28 +37,38 @@ Cointegration::~Cointegration()
 
 }
 
-void Cointegration::AugmentedDickeyFullerTest(arma::vec& timeseries, bool drift){
+QPair<int, double> Cointegration::AugmentedDickeyFullerTest(QList<double> &priceList, bool drift)
+{
+    QPair<int, double> ADFStats;
+    arma::vec timeseries(priceList.size());
+
+    for(int i=0; i<priceList.size(); i++)
+    {
+        timeseries(i) = priceList.at(i);
+    }
+
+    int adfIntegrated = 0;
+    double variance;
+    double tstat;
+    bool adfBGTest;
     int rowsize;
     int columnsize;
-    int integrated;
     int lags = 0;
     arma::vec dependent;
     arma::vec coefficients;
     arma::vec residuals;
     arma::vec standard_error_of_estimate;
     arma::mat independent;
-    double variance;
-    double tstat;
 
     do{
         rowsize = timeseries.n_rows - 1 - lags;
-        columnsize = drift + 1 + lags;    //const+var+lags
+        columnsize = drift + 1 + lags;  //const+var+lags
         dependent.set_size(rowsize);   //must resize on each pass
         independent.set_size(rowsize, columnsize);  //must resize on each pass
 
         if(drift == true){
             for(int i = 0; i < rowsize; i++){
-                independent(i,0) = 1;      //adds a constant to design matrix
+                independent(i,0) = 1;   //adds a constant to design matrix
             }
         }
 
@@ -68,36 +88,43 @@ void Cointegration::AugmentedDickeyFullerTest(arma::vec& timeseries, bool drift)
         //  OLS regression:
         coefficients = arma::inv(arma::trans(independent) * (independent)) * arma::trans(independent) * (dependent);
         residuals = dependent - (independent) * (coefficients);
-        //  call BGtest and set m_bgodtest
-        BreuschGodfreyTest(independent, residuals);
 
-        if(!m_bgodtest){
+        //  call BGtest and set m_bgodtest
+        bool adfBGTest = BreuschGodfreyTest(independent, residuals);
+
+        if(!adfBGTest){
             lags = lags + 1;
         }
 
-    }while(!m_bgodtest && lags < 3);    //arbitrarily chose up to 3 lags
+    }while(!adfBGTest && lags < 0);    //arbitrarily chose up to 3 lags
 
 /*-------------tstat----------------------------------
-  Variance = square(residual-mean) / n-k.
-  If drift is included in OLS then mean will be 0. Otherwise mean =/= 0.
-  variance = arma::var(residuals);  */
+  Variance = sum(residual-mean)^2 / n-k.
+  If drift is included in OLS then mean will be 0. Otherwise mean != 0.
+  variance = arma::var(residuals);
+*/
 
     variance = arma::as_scalar((arma::trans(residuals) * residuals) / (residuals.n_rows - independent.n_cols));
     standard_error_of_estimate = arma::sqrt(variance * arma::diagvec(arma::inv(arma::trans(independent) * independent)));
 
     tstat = coefficients(drift) / standard_error_of_estimate(drift);
 
-    if (tstat > m_dfcritvalues[1][0]){
-            integrated = 1;
-    }
+//    qDebug() << "tsat =" << tstat;
 
-    m_adftest = tstat;
+    if (tstat > m_dfcritvalues[1][0]){
+        adfIntegrated = 1;
+    }
+    ADFStats.first = (adfIntegrated);
+    ADFStats.second = (tstat);
+//    qDebug() << "Coint_120_adfInt =" << ADFStats.first << "tstat =" << ADFStats.second;
+    return ADFStats;
 }
 
-void Cointegration::BreuschGodfreyTest(arma::mat& independent, arma::vec& residuals){
+bool Cointegration::BreuschGodfreyTest(arma::mat& independent, arma::vec& residuals){
     /*The null hypothesis is no serial correlation of any order up to p.
     acLags set to 1 assumes residuals follow an AR(1) process.*/
 
+    bool bgodtest;
     int numrows = residuals.n_rows, numcols = independent.n_cols, acLags = 1;
     double sumSqrs;
     double ySumofSqrs;
@@ -146,20 +173,34 @@ void Cointegration::BreuschGodfreyTest(arma::mat& independent, arma::vec& residu
 
     //  if LMtest stat is > X^2 critical value then reject null of no autocorrelation.
     if (LMtest > m_chisqrtable[acLags-1][1]){
-        m_bgodtest = false;
+        bgodtest = false;
     }
     else{
-        m_bgodtest = true;
+        bgodtest = true;
     }
+    return bgodtest;
 }
 
-void Cointegration::CointegrationTest(arma::vec& dependent, arma::vec& independent){
+Statistics Cointegration::CointegrationTest(QString &dep, QString &indep,
+                                      QList<double> &yVector, QList<double> &xVector)
+{
+    Statistics theStats;
+    arma::vec dependent(yVector.size());
+    arma::vec independent(xVector.size());
+
+    for(int i = 0; i < yVector.size(); i++)
+    {
+        dependent(i) = yVector.at(i);
+        independent(i) = xVector.at(i);
+    }
+
     int rowsize = dependent.n_rows;
     arma::mat xmatrix = arma::ones(rowsize,1);   //adds constant to design matrix
     xmatrix.insert_cols(1,independent);   //adds independent variable to design matrix
     arma::vec coefficients(xmatrix.n_cols);
     arma::vec residuals(dependent.n_rows);
     double zscore;
+    double tstat;
     double stnd_deviation;
 
     //  OLS regression:
@@ -167,25 +208,41 @@ void Cointegration::CointegrationTest(arma::vec& dependent, arma::vec& independe
     residuals = dependent - (xmatrix * coefficients);
 
     //  sc: true = accept null of no autocorrelation; false = reject null and accept alt. of autocorrelation
-    BreuschGodfreyTest(xmatrix, residuals);
+//    bool BGTest = BreuschGodfreyTest(xmatrix, residuals);
 
     //  call ADFTest without drift for cointegration test
-    AugmentedDickeyFullerTest(residuals,false);
-
-    ErrorCorrectionModel(dependent, independent, residuals);
-
-    if(m_adftest < m_dfcritvalues[1][0]){
-        //double stnd_deviation = std::sqrt(arma::as_scalar((arma::trans(residuals) * residuals) / (independent.n_rows - independent.n_cols)));
-        stnd_deviation = arma::stddev(residuals);
-        zscore = residuals(0) / stnd_deviation;
-        m_zscore = zscore;
+    QList<double> qListResids;
+    for(auto i : residuals)
+    {
+        qListResids.append(i);
     }
-    else{
-        //std::cout << "not cointegrated" << endl;
-    }
+
+    //ADFstats.first = integratedness, ADFstats.second = tstat
+    QPair<int, double> ADFstats = AugmentedDickeyFullerTest(qListResids,false);
+    tstat = ADFstats.second;
+
+//    ErrorCorrectionModel(dependent, independent, residuals);
+
+//    if(tstat < m_dfcritvalues[1][0])
+//    {
+//        //double stnd_deviation = std::sqrt(arma::as_scalar((arma::trans(residuals) * residuals) / (independent.n_rows - independent.n_cols)));
+
+//    }
+//    else{
+////        qDebug() << "not cointegrated";
+//    }
+
+    stnd_deviation = arma::stddev(residuals);
+    zscore = residuals(0) / stnd_deviation;
+    double beta = PositionHedge(dependent, independent);
+    Statistics statObj(dep,indep,beta,tstat,zscore);
+//    qDebug() << "beta:" << statObj.beta();
+    return statObj;
+//    emit sendStats(statObj);
 }
 
-void Cointegration::ErrorCorrectionModel(arma::vec& y, arma::vec& x, arma::vec& z){
+void Cointegration::ErrorCorrectionModel(arma::vec& y, arma::vec& x, arma::vec& z)
+{
     int numrows = x.n_rows;
     int lags = 1;
     arma::vec xDiff = arma::zeros(numrows-1-lags);
@@ -195,7 +252,7 @@ void Cointegration::ErrorCorrectionModel(arma::vec& y, arma::vec& x, arma::vec& 
     arma::vec x_errors;
     arma::vec y_coefficients;
     arma::vec y_errors;
-    int numcols = xMatrix.n_cols;
+    //int numcols = xMatrix.n_cols;
 
 
     //  dependent variable:
@@ -221,28 +278,25 @@ void Cointegration::ErrorCorrectionModel(arma::vec& y, arma::vec& x, arma::vec& 
 
 }
 
-void Cointegration::PositionHedge(arma::vec& y, arma::vec& x){
+double Cointegration::PositionHedge(arma::vec& y, arma::vec& x)
+{
     /* "Pairs Trading", Vidyamurthy, recommends:
-     * use VWAP to determine beta;
-     * use the pairs combo with the higher beta coefficient to
-       assure the independent var will have the lower volatility */
+     * use VWAP to determine beta.
+     * Use the pairs combo with the higher beta coefficient to
+     * assure the independent var will have the lower volatility */
 
-    double beta_y;
+    double beta;
     int rows = y.n_rows;
-    arma::vec yreturns;
-    arma::vec xreturns;
+    arma::vec yreturns(y.n_rows-1);
+    arma::vec xreturns(y.n_rows-1);
 
-    for(int i = 0; i < rows - 1; i++){
+    for(int i = 0; i < (rows - 1); i++){
         yreturns(i) = y(i) - y(i + 1);
         xreturns(i) = x(i) - x(i + 1);
     }
 
-    beta_y = arma::as_scalar(arma::cov(yreturns, xreturns) / arma::var(xreturns));
+    beta = arma::as_scalar(arma::cov(yreturns, xreturns) / arma::var(xreturns));
 
-    m_beta_y = beta_y;
+    return beta;
 
 }
-
-
-
-
