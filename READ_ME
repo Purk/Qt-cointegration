@@ -1,7 +1,0 @@
-linuxmint 17
-gcc (Ubuntu 4.8.2-19ubuntu1) 4.8.2
-Qt Creator 3.2.0
-Qt 5.3.1 (GCC 4.6.4, 64bit)
-
-sqlite3, libopenblas, liblapack, libarmadillo
-sudo apt-get install libicu-dev libx11-xcb-dev libglu1-mesa-dev libxrender-dev
