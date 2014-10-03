@@ -116,6 +116,7 @@ void MainWindow::getLastQuote(const QString& _symbol)
 
     connect(_tcpMainSocket, &QIODevice::readyRead, [=]()
     {
+        //Parse google json file:
         QByteArray qbyte(_tcpMainSocket->readAll());
         _tcpMainSocket->disconnectFromHost();
         int qbytepos = qbyte.indexOf("{");
@@ -240,7 +241,7 @@ void MainWindow::on_actionStart_Program_triggered()
             });
             timer->start(2000);
         }else{
-            //[this] capture the 'this' pointer of the enclosing class
+//            [this] capture the 'this' pointer of the enclosing class
 //            connect(timer, &QTimer::timeout, [this, pairsList]() {
                 QList<Statistics> updateStats;
                 for(int i = 0; i < pairsList.size(); i++)

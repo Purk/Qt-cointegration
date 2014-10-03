@@ -16,8 +16,7 @@ GetPrices::~GetPrices()
  void GetPrices::setPrices()
 {
      QSqlDatabase* setPricesdB = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "setPricesdB"));
-   //  setPricesdB->setDatabaseName("/home/rodney/.sqlitedb/prices.sqlite");
-     setPricesdB->setDatabaseName(QString(QDir::homePath() + "/.sqlitedb/symbol_list.sqlite"));
+     setPricesdB->setDatabaseName(QString(QDir::homePath() +"/.sqlitedb/prices.sqlite"));
 
      if(!setPricesdB->open())
      {
@@ -65,6 +64,7 @@ GetPrices::~GetPrices()
     {
         //query_prices will query prices.sqlite dBase
         QSqlQuery *query = new QSqlQuery(*setPricesdB);
+
         //return a list of tables in prices.sqlite dBase
         QStringList _pricesList(setPricesdB->tables());
 
@@ -147,7 +147,7 @@ void GetPrices::replyFinished(QNetworkReply* reply, QString stock)
     if (reply->error() == QNetworkReply::NoError)
     {
         QSqlDatabase* finishedPricesdB = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "finishedPricesdB"));
-        finishedPricesdB->setDatabaseName(QString(QDir::homePath() + "/.sqlitedb/symbol_list.sqlite"));
+        finishedPricesdB->setDatabaseName(QString(QDir::homePath() + "/.sqlitedb/prices.sqlite"));
 
         if(!finishedPricesdB->open())
         {
@@ -161,8 +161,6 @@ void GetPrices::replyFinished(QNetworkReply* reply, QString stock)
 
             query->exec(QString("CREATE table %1 (ID INTEGER PRIMARY KEY, date TEXT,"
                 "open REAL, high REAL, low REAL, close REAL, volume REAL, adj_close REAL)").arg(stock));
-
-//            query->clear();
 
             /**** read data from QNetworkReply here ****/
             QTextStream qStream(reply->readAll());
@@ -233,7 +231,7 @@ void GetPrices::updateProgressBar(int insertsCompleted ,int totalInserts)
 void GetPrices::calcIntegrated()
 {
     QSqlDatabase* pricesdB = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "pricesdB"));
-    pricesdB->setDatabaseName(QString(QDir::homePath() + "/.sqlitedb/symbol_list.sqlite"));
+    pricesdB->setDatabaseName(QString(QDir::homePath() + "/.sqlitedb/prices.sqlite"));
 
     if(!pricesdB->open())
     {
@@ -250,7 +248,6 @@ void GetPrices::calcIntegrated()
 
     //map of all symbols and prices:
     QMultiMap<QString, double> pricesMap;
-    QList<double> adjClose;
     //list of all symbols:
     QList<QString> qStockList;
     //list of all symbols with integratedness:
@@ -283,7 +280,7 @@ void GetPrices::calcIntegrated()
 //        int _start = 25; //#of trading days: 252 = 1 year
         foreach(QString tableName, qStockList)
         {
-            /* retrieve 252 (253) historical prices from prices.sqlite for each ticker
+            /* retrieve 252 (253) ADJ_CLOSE historical prices from prices.sqlite for each ticker
                 in descending order by ID */
             query->exec(QString("SELECT adj_close FROM %1 WHERE ID <= %2 order by ID DESC").arg(tableName).arg(_start));
             query->last();

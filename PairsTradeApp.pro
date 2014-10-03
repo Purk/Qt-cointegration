@@ -37,7 +37,7 @@ FORMS    += mainwindow.ui \
     mastersymbollist.ui \
     datesetter.ui
 
-QMAKE_LIBS += -L/usr/lib/ -llapack -lblas -larmadillo
+QMAKE_LIBS += -L/usr/lib/ -larmadillo -lopenblas #-llapack -lblas
 
 QMAKE_CXXFLAGS += -std=c++11
 #QMAKE_CXXFLAGS_CXX11 += -std=c++11
@@ -50,9 +50,9 @@ QMAKE_CXXFLAGS_RELEASE *= -O2
 #--------------------------------------------------------------
 
 #Armadillo depends on lapack and openblas libs
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/openblas-base/release/ -lopenblas
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/openblas-base/debug/ -lopenblas
-else:unix: LIBS += -L$$PWD/../../../../../usr/lib/openblas-base/ -lopenblas
+#win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/openblas-base/release/ -lopenblas
+#else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../usr/lib/openblas-base/debug/ -lopenblas
+#else:unix: LIBS += -L$$PWD/../../../../../usr/lib/openblas-base/ -lopenblas
 INCLUDEPATH += $$PWD/../../../../../usr/lib
 DEPENDPATH += $$PWD/../../../../../usr/lib
 
